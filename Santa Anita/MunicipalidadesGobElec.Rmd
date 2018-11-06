@@ -108,6 +108,14 @@ library(tidyverse)
 dataMuniFinal = dataMuniFinal[-c(1,5,8),]
 ```
 
+```{r}
+#Importando data final con el codigo por Municipio
+dataMuniCod = read.csv("dataMuniFinal.csv")
+dataMuniCod=dataMuniCod[,-c(1)]
+```
+```{r}
+names(dataMuniCod)
+```
 
 
 ```{r}
@@ -118,18 +126,18 @@ p <- plot_ly(
     fill = 'toself'
   ) %>%
   add_trace(
-    r = dataMuniFinal$Informacion,
-    theta = dataMuniFinal$Nombre,
+    r = dataMuniCod$Informacion,
+    theta = dataMuniCod$Codigo,
     name = 'Informacion'
   ) %>%
   add_trace(
-    r = dataMuniFinal$Servicios,
-    theta = dataMuniFinal$Nombre,
+    r = dataMuniCod$Servicios,
+    theta = dataMuniCod$Codigo,
     name = 'Servicios'
   ) %>%
   add_trace(
-    r = dataMuniFinal$Participacion,
-    theta = dataMuniFinal$Nombre,
+    r = dataMuniCod$Participacion,
+    theta = dataMuniCod$Codigo,
     name = 'Participacion'
   ) %>%
   layout(
