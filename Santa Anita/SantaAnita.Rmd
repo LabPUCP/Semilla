@@ -1,18 +1,36 @@
 
 ```{r}
-data=read.csv("Santa Anita.csv")
+data=read.csv("Santa Anita.csv", stringsAsFactors = F)
 head(data)
 ```
 
+```{r}
+data$FECHA = substr(data$FECHA,1,8)
+```
 
+```{r}
+data$FECHA=ifelse(nchar(data$FECHA)==13,paste0("0",data$FECHA),data$FECHA) 
+```
 
+```{r}
+data$generacion=as.POSIXct(paste(data$FECHA,data$H..GENERACION),format="%d/%m/%y %H:%M:%S")
+```
 
+```{r}
+data$atencion=as.POSIXct(paste(data$FECHA,data$H..ATENCION),format="%d/%m/%y %H:%M:%S")
+```
 
+```{r}
+data$fin_atencion=as.POSIXct(paste(data$FECHA,data$H..FIN.DE.ATENCION),format="%d/%m/%y %H:%M:%S")
+```
 
+H.FIN.ATENCION - H.ATENCION
+H.ATENCION-  H.GENERACION 
+H.FIN.ATENCION - H.GERERACION 
 
-
-
-
+```{r}
+mean(difftime(data$fin_atencion, data$atencion, units = "min"))
+```
 
 ```{r}
 names(dataSantaAnita)
