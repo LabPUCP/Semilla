@@ -1,0 +1,156 @@
+```{r}
+library(openxlsx)
+folder='data'
+fileName='dataMunicipalidades.xlsx'
+fileToRead=file.path(folder,fileName)
+Informacion=read.xlsx(fileToRead, sheet = 1)
+Servicios=read.xlsx(fileToRead, sheet = 2)
+Participacion=read.xlsx(fileToRead, sheet = 3)
+```
+```{r}
+names(Informacion)
+```
+
+```{r}
+Informacion=Informacion[-c(2:5)]
+```
+
+```{r}
+names(Servicios)
+```
+```{r}
+Servicios=Servicios[,c(1,6)]
+```
+```{r}
+names(Participacion)
+```
+```{r}
+Participacion=Participacion[,c(1,6)]
+```
+
+```{r}
+Informacion=Informacion[-c(1),]
+```
+```{r}
+Participacion=Participacion[-c(1),]
+Servicios=Servicios[-c(1),]
+```
+```{r}
+Informacion=Informacion[-c(43:310),]
+Participacion=Participacion[-c(43:313),]
+Servicios=Servicios[-c(43:311),]
+```
+
+```{r}
+colnames(Informacion) = c("nombre","X6")
+colnames(Participacion) = c("nombre","X6")
+colnames(Servicios) = c("nombre","X6")
+```
+```{r}
+row.names(Informacion)=NULL
+row.names(Participacion)=NULL
+row.names(Servicios)=NULL
+```
+
+```{r}
+Informacion[2,"nombre"] = "Jesus Maria"
+Informacion[7,"nombre"] = "Ancon"
+Informacion[12,"nombre"] = "Villa Maria del Triunfo"
+Informacion[20,"nombre"] = "Santa Maria del Mar"
+Informacion[29,"nombre"] = "Pachacamac"
+Informacion[30,"nombre"] = "Lurin"
+Informacion[31,"nombre"] = "Rimac"
+Informacion[37,"nombre"] = "Brena"
+Participacion[2,"nombre"] = "Jesus Maria"
+Participacion[7,"nombre"] = "Ancon"
+Participacion[12,"nombre"] = "Villa Maria del Triunfo"
+Participacion[20,"nombre"] = "Santa Maria del Mar"
+Participacion[29,"nombre"] = "Pachacamac"
+Participacion[30,"nombre"] = "Lurin"
+Participacion[31,"nombre"] = "Rimac"
+Participacion[37,"nombre"] = "Brena"
+Servicios[2,"nombre"] = "Jesus Maria"
+Servicios[7,"nombre"] = "Ancon"
+Servicios[12,"nombre"] = "Villa Maria del Triunfo"
+Servicios[20,"nombre"] = "Santa Maria del Mar"
+Servicios[29,"nombre"] = "Pachacamac"
+Servicios[30,"nombre"] = "Lurin"
+Servicios[31,"nombre"] = "Rimac"
+Servicios[37,"nombre"] = "Brena"
+
+```
+
+```{r}
+datafinal=merge(Informacion,Servicios, by = "nombre")
+```
+```{r}
+dataMuniFinal=merge(datafinal,Participacion, by = "nombre")
+```
+```{r}
+colnames(dataMuniFinal) =c("Nombre", "Informacion", "Servicios", "Participacion")
+```
+
+
+
+```{r}
+str(dataMuniFinal)
+```
+
+```{r}
+dataMuniFinal[c(2:4)] = lapply(dataMuniFinal[c(2:4)], as.numeric)
+str(dataMuniFinal)
+```
+
+```{r}
+library(tidyverse)
+```
+```{r}
+dataMuniFinal = dataMuniFinal[-c(1,5,8),]
+```
+
+
+
+```{r}
+library(plotly)
+
+p <- plot_ly(
+    type = 'scatterpolar',
+    fill = 'toself'
+  ) %>%
+  add_trace(
+    r = dataMuniFinal$Informacion,
+    theta = dataMuniFinal$Nombre,
+    name = 'Informacion'
+  ) %>%
+  add_trace(
+    r = dataMuniFinal$Servicios,
+    theta = dataMuniFinal$Nombre,
+    name = 'Servicios'
+  ) %>%
+  add_trace(
+    r = dataMuniFinal$Participacion,
+    theta = dataMuniFinal$Nombre,
+    name = 'Participacion'
+  ) %>%
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,4)
+      )
+    )
+  )
+
+p
+```
+
+
+
+
+
+
+
+
+
+
+

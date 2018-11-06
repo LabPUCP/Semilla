@@ -33,24 +33,7 @@ mean(difftime(data$fin_atencion, data$atencion, units = "min"))
 ```
 
 ```{r}
-names(dataSantaAnita)
+names(data)
 ```
 
-```{r}
-str(dataSantaAnita)
-```
-
-```{r}
-dataSantaAnita$NUMERO=as.factor(dataSantaAnita$NUMERO)
-```
-```{r}
-datasub=dataSantaAnita[,c(1,11:13)]
-```
-```{r}
-names(datasub)
-```
-
-```{r}
-aggregate(cbind(HFA_HA, HA_HG, HFA_HG) ~ NUMERO, data=datasub,FUN=mean)
-```
 
