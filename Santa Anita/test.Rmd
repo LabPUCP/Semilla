@@ -1,16 +1,81 @@
-
-
 #DATA INEI
 
-##1) Poblaci�n
+##1) Poblaci?n
 ```{r}
 library(openxlsx)
-folder='data'
 fileName='CENSO 2007 tipo poblacion.xlsx'
-fileToRead=file.path(folder,fileName)
-rural=read.xlsx(fileToRead)
-
+rural=read.xlsx(fileName)
 ```
 
+Cambio nombre de columnas: -solo para identificarlas mejor- 
 
+```{r}
+names(rural) = c("Ubigeo", "Distrito", "por", "aumulado")
+```
+
+Elimino las ultimas filas -hacen referencia a todo el perú-
+
+```{r}
+rural=rural[-c(9101:9106),]
+```
+
+Distritos total:
+
+```{r}
+distritos=rural[grep("Dist", rural$Distrito),1:2] #solo quiero quedarme con la 1 y 2 columna
+head(distritos)
+```
+
+Manipulamos ubigeo para quedarnos solo con los códigos:
+
+```{r}
+distritos$Ubigeo= substr(distritos$Ubigeo,8,14)
+```
+
+Vean el resultado:
+
+```{r}
+head(distritos)
+```
+
+Urbanidad:
+
+```{r}
+urbano=as.data.frame(rural[grep("Urbano", rural$Ubigeo),3]) 
+```
+
+```{r}
+names(urbano) = c("por_ur")
+```
+
+Juntamos ambas data frames -no merge-: 
+
+```{r}
+data_rural = cbind(distritos,urbano)
+head(data_rural)
+```
+
+Cambiamos a numerica. Como estaba como factor no cambia directo a numerica. 
+
+```{r}
+data_rural$por_ur = as.numeric(as.character(data_rural$por_ur))
+```
+
+Calculamos % de ruralidad
+
+```{r}
+data_rural$por_ru = 100- data_rural$por_ur
+```
+
+data final:
+
+```{r}
+head(data_rural)
+```
+
+lo guardo a csv just in case:
+
+```{r}
+write.csv(data_rural, "data_ruralMG.csv")
+```
 
