@@ -24,16 +24,93 @@ data$atencion=as.POSIXct(paste(data$FECHA,data$H..ATENCION),format="%d/%m/%y %H:
 data$fin_atencion=as.POSIXct(paste(data$FECHA,data$H..FIN.DE.ATENCION),format="%d/%m/%y %H:%M:%S")
 ```
 
+
+#Grafico de lineas sobre promedios:
+
 H.FIN.ATENCION - H.ATENCION
 H.ATENCION-  H.GENERACION 
 H.FIN.ATENCION - H.GERERACION 
-
 ```{r}
 mean(difftime(data$fin_atencion, data$atencion, units = "min"))
 ```
-
 ```{r}
-names(data)
+library(tidyverse)
+a = data %>%
+  group_by(X...VENTANILLA) %>%
+  summarize(mean_size = mean(difftime(fin_atencion, atencion, units = "min")))
 ```
+```{r}
+b = data %>%
+ group_by(X...VENTANILLA) %>%
+  summarize(mean_size = mean(difftime(atencion, generacion, units = "min")))
+```
+```{r}
+c = data %>%
+  group_by(X...VENTANILLA) %>%
+  summarize(mean_size = mean(difftime(fin_atencion, generacion, units = "min")))
+```
+
+------------------------------
+```{r}
+#Creo dataframe con promedios:
+promedios=merge(a,b,by = "X...VENTANILLA")
+promediosfinal=merge(promedios,c,by = "X...VENTANILLA")
+colnames(promediosfinal)=c("NumeroVentanilla", "PromedioTiempoAtencion", "PromedioEspera", "PromedioRecepcionTicket")
+```
+-----------------------------
+
+#Primero:
+```{r}
+#Primer gr??fico:
+mean(difftime(data$fin_atencion, data$atencion, units = "min"))
+```
+```{r}
+colnames(a)=c("NumeroVentanilla", "PromedioTiempoAtencion")
+```
+```{r fig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+library(ggplot2)
+plot_a = ggplot(data=a, aes(x=reorder(NumeroVentanilla,-PromedioTiempoAtencion), y=PromedioTiempoAtencion)) +
+  geom_bar(stat="identity", fill="grey") + ylab("Promedio en minutos") + xlab("Municipalidades a nivel local") + coord_flip() +
+  geom_hline(yintercept = mean(difftime(data$fin_atencion, data$atencion, units = "min")) ,linetype="dashed", color="red") + ggtitle("Promedio de tiempo de atencion") + 
+     theme(plot.title = element_text( face="bold")) + theme_light()
+```
+
+#Segundo:
+```{r} 
+#Segundo gr??fico:
+colnames(b)=c("NumeroVentanilla", "PromedioEspera")
+```
+
+```{r ig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+library(ggplot2)
+plot_b = ggplot(data=b, aes(x=reorder(NumeroVentanilla,-PromedioEspera), y=PromedioEspera)) +
+  geom_bar(stat="identity", fill="grey") + ylab("Promedio en minutos") + xlab("Municipalidades a nivel local") + coord_flip() +
+  geom_hline(yintercept = mean(difftime(data$atencion, data$generacion, units = "min")) ,linetype="dashed", color="red") + ggtitle("Promedio de espera hasta ser atendido") + 
+     theme(plot.title = element_text( face="bold")) + theme_light()
+```
+
+#Tercero:
+```{r} 
+#Tercer gr??fico:
+colnames(c)=c("NumeroVentanilla", "PromedioRecepcionTicket")
+```
+
+```{r ig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+library(ggplot2)
+plot_c = ggplot(data=c, aes(x=reorder(NumeroVentanilla,-PromedioRecepcionTicket), y=PromedioRecepcionTicket)) +
+  geom_bar(stat="identity", fill="grey") + ylab("Promedio en minutos") + xlab("Municipalidades a nivel local") + coord_flip() +
+  geom_hline(yintercept = mean(difftime(data$fin_atencion, data$generacion, units = "min")) ,linetype="dashed", color="red") + ggtitle("Promedio de espera desde la entrega del ticket hasta que finaliza la atencion") + 
+     theme(plot.title = element_text( face="bold")) + theme_light()
+```
+
+#Juntando todos los gr??ficos:
+```{r fig.height = 7, echo=FALSE, fig.width=14, warning=FALSE}
+library(ggpubr)
+feo = ggarrange(plot_a,                                                 # First row with scatter plot
+          ggarrange(plot_b, plot_c, ncol = 2), # Second row with box and dot plots
+          nrow = 2) + theme(plot.title = element_text(size=20))
+```
+
+
 
 

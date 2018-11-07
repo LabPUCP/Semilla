@@ -1,0 +1,16 @@
+
+
+#DATA INEI
+
+##1) Población
+```{r}
+library(openxlsx)
+folder='data'
+fileName='CENSO 2007 tipo poblacion.xlsx'
+fileToRead=file.path(folder,fileName)
+rural=read.xlsx(fileToRead)
+
+```
+
+
+
