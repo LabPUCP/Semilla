@@ -1,0 +1,105 @@
+<img src="https://github.com/ERMPeru/elecciones2016/raw/master/headerLogo.png" width="1000">
+
+
+## Análisis de la Plataforma de Atención al Ciudadano de la Municipalidad de Santa Anita 
+
+#### Elaborado por el [Laboratorio de Políticas Públicas de la PUCP](#team)
+
+-----
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+```
+
+```{r include=FALSE}
+data=read.csv("Santa Anita.csv", stringsAsFactors = F)
+head(data)
+```
+
+
+```{r include=FALSE}
+nrow(data)
+```
+
+
+```{r include=FALSE}
+data$FECHA = substr(data$FECHA,1,8)
+```
+
+```{r include=FALSE}
+data$FECHA=ifelse(nchar(data$FECHA)==13,paste0("0",data$FECHA),data$FECHA) 
+```
+
+```{r include=FALSE}
+data$FECHA=as.POSIXct(data$FECHA,format="%d/%m/%y")
+```
+
+```{r include=FALSE}
+data$generacion=as.POSIXct(paste(data$FECHA,data$H..GENERACION),format="%Y-%m-%d %H:%M:%S")
+```
+
+```{r include=FALSE}
+data$atencion=as.POSIXct(paste(data$FECHA,data$H..ATENCION),format="%Y-%m-%d %H:%M:%S")
+```
+
+```{r include=FALSE}
+data$fin_atencion=as.POSIXct(paste(data$FECHA,data$H..FIN.DE.ATENCION),format="%Y-%m-%d %H:%M:%S")
+```
+
+
+```{r include=FALSE}
+data$day=weekdays(data$FECHA, abbreviate = F)
+```
+
+```{r include=FALSE}
+data$hour = substr(data$generacion,12,13)
+```
+
+
+```{r include=FALSE}
+tiempos_fecha = data %>% group_by(day, hour) %>% summarise(count = n ())
+```
+
+```{r include=FALSE}
+dow_format <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
+tiempos_fecha$day <- factor(tiempos_fecha$day, level = rev(dow_format))
+```
+
+```{r include=FALSE}
+tiempos_fecha2=tiempos_fecha[!tiempos_fecha$hour=="07",]
+tiempos_fecha2=tiempos_fecha2[!tiempos_fecha2$hour=="17",]
+```
+
+## Atenciones al ciudadano por día 
+
+```{r echo=FALSE}
+plot <- ggplot(tiempos_fecha2, aes(x = hour, y = day, fill = count)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.6), legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(2, "cm"), legend.key.height=unit(0.25, "cm")) +
+  labs(x = "Hora de atencion", y = "Dia de la semana", title = "Numero de atenciones") +
+  scale_fill_gradient(low = "white", high = "#27AE60", labels = comma)+
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))
+plot
+```
+
+------
+
+<a id='team'></a>
+
+**El equipo del LabPUCP está conformado por:**
+
+Director: Dr. José Manuel Magallanes
+
+Investigadora Senior: 
+
+* Lic. María Gracia Becerra.
+
+Investigadores Junior: 
+
+* Alexander Benites.
+* María Alejandra Gutierrez. 
+ 
+ 
+
