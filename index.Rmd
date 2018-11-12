@@ -64,6 +64,9 @@ data$tiempoTotal = difftime(data$fin_atencion,data$generacion, units="min")
 
 #Numero ventanilla
 data$numVentanilla= str_trim(substr(data$Ventanilla,12,13))
+
+#Formato fecha
+data$Ticket2 = substr(data$Ticket,1,2)
 ```
 
 
@@ -122,7 +125,7 @@ ggplot(data=atenciones_ven, aes(x=reorder(numVentanilla,Orden), y=count)) +
   geom_text(aes(label=count), vjust=1.6, color="white", size=3)  + scale_y_continuous(breaks=seq(0,5500,1000))
 ```
 
-#### Tiempo promedio de atención 
+#### Tiempo promedio de atención por ventanilla 
 
 ```{r include=FALSE}
 #Promedios: 
@@ -149,7 +152,6 @@ meanAtencion3
 
 ```
 
-
 ```{r fig.height = 4, echo=FALSE,warning=FALSE}
 ggplot(meanAtencion3, aes(x=as.numeric(as.character(numVentanilla)), y=Promedio, color = Tiempo)) + 
     geom_errorbar(aes(ymin=Promedio-SePromedio, ymax=Promedio+SePromedio), width=.1) +
@@ -162,6 +164,74 @@ ggplot(meanAtencion3, aes(x=as.numeric(as.character(numVentanilla)), y=Promedio,
 
 ```
 
+#### Tipo de espera del ciudadano por ventanilla 
+
+```{r include=FALSE}
+#Promedios: 
+meanAtencion = data %>% group_by(Ventanilla, numVentanilla) %>% summarise(TiempoTotal = mean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = mean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = mean(as.numeric(tiempoLlamada)))
+
+meanAtencion = meanAtencion %>% 
+  mutate(TiempoAtencion = (TiempoAtencion/TiempoTotal)*100,
+         TiempoLlamada = (TiempoLlamada/TiempoTotal)*100)
+
+meanAtencion = meanAtencion[-3]
+
+meanAtencion = gather(meanAtencion, Tiempo, value=Porcentaje, TiempoAtencion, TiempoLlamada)
+```
+
+
+```{r fig.height = 4.5, echo=FALSE, fig.width=7, warning=FALSE}
+ggplot(meanAtencion, aes(x = as.numeric(as.character(numVentanilla)), y = Porcentaje, fill = Tiempo)) + 
+  geom_bar(stat = "identity") + coord_flip() +
+  geom_text(aes(label=paste0(round(Porcentaje,1), "%")), position=position_stack(vjust=0.5), vjust = .5, size = 3, col="white") + labs(title="Tiempo de espera del ciudadano", y="Porcentaje (%)", x="Ventanilla de atencion") + theme(plot.title = element_text(hjust = 0.5)) + scale_x_continuous(breaks=seq(1,17,1))+
+    	    theme(panel.background=element_rect(fill = "white", colour = "black"))
+```
+
+
+#### Atenciones al ciudadano por tipo de tramite
+
+```{r include=FALSE}
+atenciones_tram = data %>% group_by(Ticket2) %>% summarise(inicio = min(Fecha), count = n ())
+atenciones_tram
+```
+
+```{r fig.height = 3.5, echo=FALSE,warning=FALSE}
+library(ggplot2)
+ggplot(data=atenciones_tram, aes(x=reorder(Ticket2,-count), y=count)) +
+  geom_bar(stat="identity", fill="darkgrey") + labs(title="Numero de atenciones por ventanilla", y="Numero de atenciones", x="Tipo de tramite", caption="Promedio de atenciones: 4 907") + geom_hline(yintercept = mean(atenciones_tram$count) ,linetype="dashed", color="red") +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(label=count), vjust=1.6, color="white", size=3)  + scale_y_continuous(breaks=seq(0,26000,5000))
+```
+
+
+#### Tipo de espera del ciudadano por tipo de tramite
+
+```{r include=FALSE}
+#Promedios: 
+meanAtencion = data %>% group_by(Ticket2) %>% 
+  summarise(TiempoTotal = mean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = mean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = mean(as.numeric(tiempoLlamada)))
+
+meanAtencion = meanAtencion %>% 
+  mutate(TiempoAtencion = (TiempoAtencion/TiempoTotal)*100,
+         TiempoLlamada = (TiempoLlamada/TiempoTotal)*100)
+
+meanAtencion = meanAtencion[-2]
+
+meanAtencion$Orden = c(1:11)
+
+meanAtencion = gather(meanAtencion, Tiempo, value=Porcentaje, TiempoAtencion, TiempoLlamada)
+```
+
+```{r fig.height = 4, echo=FALSE, fig.width=7, warning=FALSE}
+ggplot(meanAtencion, aes(x = reorder(Ticket2, Orden), y = Porcentaje, fill = Tiempo)) + 
+  geom_bar(stat = "identity") + coord_flip() +
+  geom_text(aes(label=paste0(round(Porcentaje,1), "%")), position=position_stack(vjust=0.5), vjust = .5, size = 3, col="white") + labs(title="Tiempo de espera del ciudadano", y="Porcentaje (%)", x="Tipo de tramite") + theme(plot.title = element_text(hjust = 0.5)) +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black"))
+```
 
 
 
