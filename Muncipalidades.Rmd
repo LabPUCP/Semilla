@@ -1,0 +1,209 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+##Datos sobre Municipalidades distritales de Lima
+```{r}
+library(openxlsx)
+folder='data'
+fileName='Municipalidades.xlsx'
+fileToRead=file.path(folder,fileName)
+Municipalidades=read.xlsx(fileToRead)
+```
+```{r}
+str(Municipalidades$PIM.2017)
+```
+```{r}
+names(Municipalidades)
+```
+```{r}
+boxplot(Municipalidades$PIM.2017)
+```
+```{r}
+barplot(Municipalidades$PIM.2017)
+```
+#Presupuesto manejado por municipalidades
+```{r}
+names(Municipalidades)
+```
+
+```{r}
+etiquetas1=c('Bajo','Medio','Alto')
+Municipalidades$PIMOrd=cut(Municipalidades$PIM.2017,
+                           breaks=3,
+                           labels=etiquetas1,
+                           ordered_result = T)
+
+```
+```{r}
+tablaTE=table(Municipalidades$PIMOrd)
+tablaTE
+```
+```{r}
+test=as.data.frame(tablaTE)
+```
+
+```{r}
+prop=prop.table(tablaTE)
+prop
+```
+```{r}
+test$GruposDeMunicipalidadesDistritales=test$Var1
+test=test[-c(1)]
+```
+```{r}
+names(test)
+```
+
+```{r fig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+# Inside bars
+library(ggplot2)
+a=ggplot(data=test, aes(x=GruposDeMunicipalidadesDistritales, y=Freq)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Freq), vjust=1.6, color="white", size=3.5) + ggtitle("Presupuesto") + ylab("Numero de Municipalidades") + xlab("Grupos")+ theme(plot.title = element_text(size=12))
+a
+```
+
+```{r}
+MuniMedio=Municipalidades[Municipalidades$PIMOrd == "Medio",]
+MuniAlto=Municipalidades[Municipalidades$PIMOrd == "Alto",]
+MuniBajo=Municipalidades[Municipalidades$PIMOrd == "Bajo",]
+```
+```{r}
+names(Municipalidades)
+```
+
+#Nivel de ejecucion de municipalidades
+```{r}
+etiquetas2=c('Baja','Media','Alta')
+Municipalidades$EjecucionOrd=cut(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.EJECUTADO,
+                           breaks=3,
+                           labels=etiquetas2,
+                           ordered_result = T)
+
+```
+```{r}
+tablaTE2=table(Municipalidades$EjecucionOrd)
+tablaTE2
+test1=as.data.frame(tablaTE2)
+test1
+```
+```{r}
+test1$GruposDeMunicipalidadesDistritales=test1$Var1
+test1=test1[-c(1)]
+```
+```{r}
+names(test1)
+```
+```{r fig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+# Inside bars
+library(ggplot2)
+b=ggplot(data=test1, aes(x=GruposDeMunicipalidadesDistritales, y=Freq)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Freq), vjust=1.6, color="white", size=3.5) + ggtitle("Ejecucion Presupuestal") + ylab("Numero de Municipalidades") + xlab("Grupos")+ theme(plot.title = element_text(size=12))
+b
+```
+
+```{r}
+MuniMedioEjec=Municipalidades[Municipalidades$EjecucionOrd == "Media",]
+MuniAltoEjec=Municipalidades[Municipalidades$EjecucionOrd == "Alta",]
+MuniBajoEjec=Municipalidades[Municipalidades$EjecucionOrd == "Baja",]
+```
+
+#Mas del 50% de ingresos directamente recaudados
+```{r}
+names(Municipalidades)
+```
+
+```{r}
+Municipalidades$RecaudDirec=as.factor(ifelse(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO>50,1,0))
+levels(Municipalidades$RecaudDirec)=c('Menos_Del_Promedio','Mas_Del_Promedio')
+
+```
+```{r}
+tablaTE3=table(Municipalidades$RecaudDirec)
+tablaTE3
+```
+```{r}
+test2=as.data.frame(tablaTE3)
+test2
+```
+```{r}
+test2$GruposDeMunicipalidadesDistritales=test2$Var1
+test2=test2[-c(1)]
+```
+
+```{r fig.height = 4, echo=FALSE, fig.width=6, warning=FALSE}
+# Inside bars
+library(ggplot2)
+c=ggplot(data=test2, aes(x=GruposDeMunicipalidadesDistritales, y=Freq)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Freq), vjust=1.6, color="white", size=3.5) + ggtitle("Recaudacion directa") + ylab("Numero de Municipalidades") + xlab("Grupos") + theme(plot.title = element_text(size=12))
+c
+```
+
+```{r fig.height = 6, echo=FALSE, fig.width=7, warning=FALSE}
+library(ggpubr)
+ggarrange(a,                                                 # First row with scatter plot
+          ggarrange(b, c, ncol = 2), # Second row with box and dot plots
+          nrow = 2) + theme(plot.title = element_text(size=12))
+```
+```{r}
+mean(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO)
+```
+
+```{r}
+names(Municipalidades)
+```
+
+
+```{r}
+Municipalidades$nombre = substr(Municipalidades$MUNICIPALIDAD, 28, 50)
+```
+
+
+```{r}
+Municipalidades[23,"nombre"] = "BRENA"
+Municipalidades[36,"nombre"] = "CHOSICA"
+Municipalidades[31,"nombre"] = "ATE VITARTE"
+```
+
+
+
+
+```{r}
+Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.EJECUTADO
+```
+
+
+```{r fig.height = 6, echo=FALSE, fig.width=4.5, warning=FALSE}
+library(ggplot2)
+d= ggplot(data=Municipalidades, aes(x=reorder(nombre,PORCENTAJE.DEL.PRESUPUESTO.EJECUTADO), y=PORCENTAJE.DEL.PRESUPUESTO.EJECUTADO)) +
+  geom_bar(stat="identity", fill="grey") + ylab("Percentage (%)") + xlab("Municipalities at the local level") + coord_flip() +
+  geom_hline(yintercept = mean(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.EJECUTADO) ,linetype="dashed", color="red") + ggtitle("Budget executed") + 
+     theme(plot.title = element_text( face="bold")) + theme_light()
+
+```
+
+```{r fig.height = 6, echo=FALSE, fig.width=4.5, warning=FALSE}
+library(ggplot2)
+ e=ggplot(data=Municipalidades, aes(x=reorder(nombre,PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO), y=PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO)) +
+  geom_bar(stat="identity", fill="grey") + ylab("Percentage (%)") + xlab("") + coord_flip() +
+  geom_hline(yintercept = mean(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO) ,linetype="dashed", color="red") + ggtitle("Budget directly collected") + 
+     theme(plot.title = element_text( face="bold")) + theme_light()
+```
+ 
+
+```{r fig.height = 5.5, echo=FALSE, fig.width=8.5, warning=FALSE}
+library(ggpubr)
+ggarrange(d,e, # Second row with box and dot plots
+          ncol = 2) + theme(plot.title = element_text(size=12))
+```
+
+
+```{r}
+mean(Municipalidades$PORCENTAJE.DEL.PRESUPUESTO.DIRECTAMENTE.RECAUDADO)
+```
+
+
