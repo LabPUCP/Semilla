@@ -89,7 +89,16 @@ dataMuniFinal=merge(datafinal,Participacion, by = "nombre")
 ```{r}
 colnames(dataMuniFinal) =c("Nombre", "Informacion", "Servicios", "Participacion")
 ```
+```{r}
+dataMuniFinal$Informacion=as.numeric(dataMuniFinal$Informacion)
+dataMuniFinal$Servicios=as.numeric(dataMuniFinal$Servicios)
+dataMuniFinal$Participacion=as.numeric(dataMuniFinal$Participacion)
+```
 
+```{r}
+dataMuniFinal$eGobTotal = dataMuniFinal$Informacion+dataMuniFinal$Servicios
+dataMuniFinal$eGobTotal = dataMuniFinal$eGobTotal+dataMuniFinal$Participacion
+```
 
 
 ```{r}
