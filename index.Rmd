@@ -1,0 +1,304 @@
+<img src="https://github.com/ERMPeru/elecciones2016/raw/master/headerLogo.png" width="1000">
+
+
+## Análisis de la Plataforma de Atención al Ciudadano de la Municipalidad de Santa Anita 
+
+#### Elaborado por el [Laboratorio de Políticas Públicas de la PUCP](#team)
+
+La Plataforma de Atención al Ciudadano de la Municipalidad de Santa Anita es un espacio, ofrecido a los vecinos de dicho distrito, para la realización de tramites, acceso a información, recepción de quejas, entre otros. A través de este servicio, la Municipalidad ha buscado simplificar los tramites, personalizar la atención y minimizar el tiempo de espera del ciudadano. 
+
+El siguiente ejercicio tuvo como objetivo evaluar la eficacia de los servicios brindados a los ciudadanos a través de la Plataforma, mediante un análisis del desempeño de las ventanillas de atención. El énfasis se encuentra en el tiempo de espera del ciudadano. 
+
+En total, se analizaron **53 972 atenciones** registradas entre los meses de enero y junio del 2018. 
+
+-----
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(lubridate)
+library(ggrepel)
+library(plotly)
+library(scales)
+library(ggpubr)
+```
+
+```{r include=FALSE}
+seMean = function(x) sd(x)/sqrt(length(x))
+```
+
+```{r include=FALSE}
+data=read.csv("Santa Anita.csv", stringsAsFactors = F)
+head(data)
+```
+
+```{r include=FALSE}
+names(data) = c("Ventanilla", "Operador", "Ticket", "Operacion", "SubOperacion", "HGeneracion", "HLlamada", "HAtencion", "HFinAtencion", "Fecha", "HSubOperacion", "HFinSubOperacion")
+```
+
+```{r include=FALSE}
+###LIMPIEZA FORMATOS:
+
+#Formato fecha
+data$Fecha = substr(data$Fecha,1,8)
+data$Fecha=ifelse(nchar(data$Fecha)==13,paste0("0",data$Fecha),data$Fecha) 
+data$Fecha=as.POSIXct(data$Fecha,format="%d/%m/%y")
+
+#Hora generacion: 
+data$generacion=as.POSIXct(paste(data$Fecha,data$HGeneracion),format="%Y-%m-%d %H:%M:%S")
+
+#Hora atencion:
+data$atencion=as.POSIXct(paste(data$Fecha,data$HAtencion),format="%Y-%m-%d %H:%M:%S")
+
+#Hora fin atencion:
+data$fin_atencion=as.POSIXct(paste(data$Fecha,data$HFinAtencion),format="%Y-%m-%d %H:%M:%S")
+
+#MES, SEMANA Y HORA
+data$month=month(data$Fecha, label = T)
+data$day=weekdays(data$Fecha, abbreviate = F)
+data$hour = substr(data$generacion,12,13)
+
+#Hora fin atencion - hora atencion (EN MINUTOS)
+data$tiempoAtencion = difftime(data$fin_atencion,data$atencion, units="min")
+
+#Hora atención - hora generacion: tiempo entre que te dan el ticket y te atienden
+data$tiempoLlamada = difftime(data$atencion,data$generacion, units="min")
+
+#Hora fin atencion - Hora generacion 
+data$tiempoTotal = difftime(data$fin_atencion,data$generacion, units="min")
+
+#Numero ventanilla
+data$numVentanilla= str_trim(substr(data$Ventanilla,12,13))
+
+#Formato fecha
+data$Ticket2 = substr(data$Ticket,1,2)
+```
+
+
+```{r include=FALSE}
+#OJO CON INCONSISTENCIAS: 
+
+#atenciones más corta:
+min(data$tiempoLlamada)
+min(data$tiempoAtencion)
+min(data$tiempoTotal)
+
+#atención más larga:
+max(data$tiempoLlamada)
+max(data$tiempoAtencion)
+max(data$tiempoTotal)
+```
+
+#### Atenciones al ciudadano por día 
+
+El siguiente gráfico permite analizar los niveles de concurrencia de los ciudadanos a la Plataforma, según los días de la semana y horarios de atención. 
+
+- El día lunes concentra el mayor número de atenciones. En promedio, cada lunes se atienden a 464 ciudadanos.
+- El mayor flujo de ciudadanos se encuentra entre las 9 am y 12 pm. En promedio, se realizan 118 atenciones durante dicho horario cada día. 
+
+```{r include=FALSE}
+#Preparar datos: 
+tiempos_Fecha = data %>% group_by(day, hour) %>% summarise(count = n ())
+
+dow_format <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
+tiempos_Fecha$day <- factor(tiempos_Fecha$day, level = rev(dow_format))
+
+tiempos_Fecha2=tiempos_Fecha[!tiempos_Fecha$hour=="07",]
+tiempos_Fecha2=tiempos_Fecha2[!tiempos_Fecha2$hour=="17",]
+```
+
+```{r fig.height = 4.5, echo=FALSE,warning=FALSE}
+plot <- ggplot(tiempos_Fecha2, aes(x = hour, y = day, fill = count)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.6), legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(2, "cm"), legend.key.height=unit(0.25, "cm")) +
+  labs(x = "Hora de atencion", y = "Dia de la semana", title = "Numero de atenciones") +
+  scale_fill_gradient(low = "white", high = "#27AE60", labels = comma)+
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))
+plot
+```
+
+#### Atenciones al ciudadano por ventanilla 
+
+En total, existen **17 ventanillas implementadas** en la Plataforma. Sin embargo, como se muestra en el siguiente gráfico, no todas las ventanillas han atendido durante la totalidad de días observados. 
+
+- Destaca que las **ventanillas 2 y 8** atendieron menos de 15 días durante la observación. Es decir, atendieron durante menos del 15% de días observados. 
+
+```{r include=FALSE}
+atenciones_dias = data %>% group_by(Ventanilla, numVentanilla) %>% summarise(dias=length(unique(Fecha)))
+
+atenciones_dias$Orden = as.numeric(atenciones_dias$numVentanilla)
+atenciones_dias
+```
+
+```{r fig.height = 3.5, echo=FALSE,warning=FALSE}
+ggplot(data=atenciones_dias, aes(x=reorder(numVentanilla,Orden), y=dias)) +
+  geom_bar(stat="identity", fill="darkgrey") + labs(title="Numero de dias de atencion por ventanilla", y="Numero de dias", x="Ventanilla de atencion", caption="Promedio de dias de atencion: 103") + geom_hline(yintercept = mean(atenciones_dias$dias) ,linetype="dashed", color="red") +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(label=dias), vjust=1.6, color="white", size=3)  + scale_y_continuous(breaks=seq(0,200,50))
+```
+
+El siguiente gráfico muestra el promedio de ciudadanos atendidos por cada ventanilla durante la observación. 
+
+- En promedio, cada ventanilla ha atendido a **3 175 ciudadanos** durante la observación.
+- Las **ventanillas 1,3,16 y 17** han atendido a un número de ciudadanos por debajo del promedio general. 
+
+```{r include=FALSE}
+atenciones_ven = data %>% group_by(Ventanilla, numVentanilla) %>% summarise(inicio = min(Fecha), count = n ())
+
+atenciones_ven$Orden = as.numeric(atenciones_ven$numVentanilla)
+atenciones_ven
+```
+
+```{r fig.height = 3.5, echo=FALSE,warning=FALSE}
+library(ggplot2)
+ggplot(data=atenciones_ven, aes(x=reorder(numVentanilla,Orden), y=count)) +
+  geom_bar(stat="identity", fill="darkgrey") + labs(title="Numero de atenciones por ventanilla", y="Numero de atenciones", x="Ventanilla de atencion", caption="Promedio de atenciones: 3 175") + geom_hline(yintercept = mean(atenciones_ven$count) ,linetype="dashed", color="red") +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(label=count), vjust=1.6, color="white", size=3)  + scale_y_continuous(breaks=seq(0,5500,1000))
+```
+
+#### Tiempo promedio de atención por ventanilla
+
+En promedio, desde que el ciudadano llega a la Municipalidad hasta el momento en que se retira tras ser atendido pasan **24.6 minutos**. Sin embargo, de dicho total, son solo 8.3 minutos los que conforman el tiempo de atención, y 16.3 minutos el tiempo de espera. Esto tiene impactos significativos en la calidad de atención ofrecida a los usuarios, quienes pasan, en promedio, **dos tercios del tiempo esperando a ser atendidos.** 
+
+El siguiente gráfico muestra el tiempo promedio de atención por ventanilla. Como se observa, existe un alto nivel de dispersión en los tiempos de atención ofrecidos en las ventanillas. 
+
+- Las ventanillas en las que el ciudadano espera un tiempo superior al promedio son las **ventanillas 1,2,16 y 17**.
+
+```{r include=FALSE}
+#Promedios: 
+meanAtencion = data %>% group_by(Ventanilla, numVentanilla) %>% summarise(TiempoTotal = mean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = mean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = mean(as.numeric(tiempoLlamada)))
+
+meanAtencion = gather(meanAtencion, Tiempo, value=Promedio, TiempoTotal, TiempoAtencion, TiempoLlamada)
+
+#Se:
+
+meanAtencion2 = data %>% group_by(Ventanilla) %>% 
+summarise(TiempoTotal = seMean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = seMean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = seMean(as.numeric(tiempoLlamada)))
+
+meanAtencion2 = gather(meanAtencion2, Tiempo, value=SePromedio, TiempoTotal, TiempoAtencion, TiempoLlamada)
+
+
+#Juntar
+
+meanAtencion3 = merge(meanAtencion, meanAtencion2, by=c("Ventanilla", "Tiempo"))
+meanAtencion3
+
+```
+
+```{r fig.height = 4, echo=FALSE,warning=FALSE}
+ggplot(meanAtencion3, aes(x=as.numeric(as.character(numVentanilla)), y=Promedio, color = Tiempo)) + 
+    geom_errorbar(aes(ymin=Promedio-SePromedio, ymax=Promedio+SePromedio), width=.1) +
+    geom_line() +
+    geom_point()+ labs(title="Tiempo promedio de atencion", y="Tiempo promedio (minutos)", x="Ventanilla de atencion") + theme(plot.title = element_text(hjust = 0.5)) + scale_x_continuous(breaks=seq(0,17,1))+
+    	    theme(panel.background=element_rect(fill = "white", colour = "black"))+ geom_hline(yintercept = mean(data$tiempoAtencion) ,linetype="dashed", color="red") + geom_hline(yintercept = mean(data$tiempoLlamada) ,linetype="dashed", color="darkgreen") + geom_hline(yintercept = mean(data$tiempoTotal) ,linetype="dashed", color="blue")+
+    scale_colour_hue(name="Tiempos promedio",    # Legend label, use darker 
+                     labels= c("Atencion (8.3 min)", 
+    "Llamada (16.3 min)", "Total (24.6 min)"))
+
+```
+
+#### Tipo de espera del ciudadano por ventanilla 
+
+El tiempo del ciudadano en la Plataforma se divide entre el tiempo de espera para ser atendido y la duración de la realización del tramite. El siguiente gráfico muestra el porcentaje que representa cada tipo de espera en la Plataforma por ventanilla. 
+
+- Las **ventanillas 4 y 14** destacan puesto que, de todo el tiempo de espera del ciudadano en la Plataforma, menos del 20% representa la realización del tramite. El resto del tiempo del ciudadano representa la espera para ser atendido. 
+
+```{r include=FALSE}
+#Promedios: 
+meanAtencion = data %>% group_by(Ventanilla, numVentanilla) %>% summarise(TiempoTotal = mean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = mean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = mean(as.numeric(tiempoLlamada)))
+
+meanAtencion = meanAtencion %>% 
+  mutate(TiempoAtencion = (TiempoAtencion/TiempoTotal)*100,
+         TiempoLlamada = (TiempoLlamada/TiempoTotal)*100)
+
+meanAtencion = meanAtencion[-3]
+
+meanAtencion = gather(meanAtencion, Tiempo, value=Porcentaje, TiempoAtencion, TiempoLlamada)
+```
+
+```{r fig.height = 4.5, echo=FALSE, fig.width=7, warning=FALSE}
+ggplot(meanAtencion, aes(x = as.numeric(as.character(numVentanilla)), y = Porcentaje, fill = Tiempo)) + 
+  geom_bar(stat = "identity") + coord_flip() +
+  geom_text(aes(label=paste0(round(Porcentaje,1), "%")), position=position_stack(vjust=0.5), vjust = .5, size = 3, col="white") + labs(title="Tiempo de espera del ciudadano", y="Porcentaje (%)", x="Ventanilla de atencion") + theme(plot.title = element_text(hjust = 0.5)) + scale_x_continuous(breaks=seq(1,17,1))+
+    	    theme(panel.background=element_rect(fill = "white", colour = "black"))
+```
+
+#### Atenciones al ciudadano por tipo de tramite
+
+El siguiente gráfico muestra el número de atenciones por tipo de tramite, durante el periodo de observación. 
+
+- Cerca del 50% de atenciones corresponden a consultas de Estado de Cuenta. 
+
+```{r include=FALSE}
+atenciones_tram = data %>% group_by(Ticket2) %>% summarise(inicio = min(Fecha), count = n ())
+atenciones_tram
+```
+
+```{r fig.height = 3.5, echo=FALSE,warning=FALSE}
+library(ggplot2)
+ggplot(data=atenciones_tram, aes(x=reorder(Ticket2,-count), y=count)) +
+  geom_bar(stat="identity", fill="darkgrey") + labs(title="Numero de atenciones por ventanilla", y="Numero de atenciones", x="Tipo de tramite", caption="Promedio de atenciones: 4 907") + geom_hline(yintercept = mean(atenciones_tram$count) ,linetype="dashed", color="red") +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black")) + theme(plot.title = element_text(hjust = 0.5))+
+  geom_text(aes(label=count), vjust=1.6, color="white", size=3)  + scale_y_continuous(breaks=seq(0,26000,5000))
+```
+
+#### Tipo de espera del ciudadano por tipo de tramite
+
+El siguiente gráfico muestra el porcentaje que representa cada tipo de espera en la Plataforma por tipo de tramite. 
+
+- Los tramites **DC y CO** destacan puesto que, de todo el tiempo de espera del ciudadano en la Plataforma, menos del 5% representa la realización del tramite. El resto del tiempo del ciudadano representa la espera para ser atendido. 
+
+
+```{r include=FALSE}
+#Promedios: 
+meanAtencion = data %>% group_by(Ticket2) %>% 
+  summarise(TiempoTotal = mean(as.numeric(tiempoTotal)), 
+          TiempoAtencion = mean(as.numeric(tiempoAtencion)), 
+          TiempoLlamada = mean(as.numeric(tiempoLlamada)))
+
+meanAtencion = meanAtencion %>% 
+  mutate(TiempoAtencion = (TiempoAtencion/TiempoTotal)*100,
+         TiempoLlamada = (TiempoLlamada/TiempoTotal)*100)
+
+meanAtencion = meanAtencion[-2]
+
+meanAtencion$Orden = c(1:11)
+
+meanAtencion = gather(meanAtencion, Tiempo, value=Porcentaje, TiempoAtencion, TiempoLlamada)
+```
+
+```{r fig.height = 4, echo=FALSE, fig.width=7, warning=FALSE}
+ggplot(meanAtencion, aes(x = reorder(Ticket2, Orden), y = Porcentaje, fill = Tiempo)) + 
+  geom_bar(stat = "identity") + coord_flip() +
+  geom_text(aes(label=paste0(round(Porcentaje,1), "%")), position=position_stack(vjust=0.5), vjust = .5, size = 3, col="white") + labs(title="Tiempo de espera del ciudadano", y="Porcentaje (%)", x="Tipo de tramite") + theme(plot.title = element_text(hjust = 0.5)) +
+    	    theme(panel.background=element_rect(fill = "white", colour = "black"))
+```
+
+
+------
+
+<a id='team'></a>
+
+**El equipo del LabPUCP está conformado por:**
+
+Director: Dr. José Manuel Magallanes.
+
+Investigadora Senior: 
+
+* Lic. María Gracia Becerra.
+
+Investigadores Junior: 
+
+* Alexander Benites.
+* María Alejandra Gutierrez. 
+ 
+ 
+
